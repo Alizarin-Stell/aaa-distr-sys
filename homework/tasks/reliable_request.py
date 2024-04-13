@@ -1,6 +1,7 @@
 import abc
 import asyncio
 import httpx
+import logging
 
 
 class ResultsObserver(abc.ABC):
@@ -33,6 +34,7 @@ async def do_reliable_request(url: str, observer: ResultsObserver) -> None:
                 observer.observe(data)
                 return
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
+                logging.error(f"Ошибка запроса: {e}")
                 await asyncio.sleep(retry_delay)
         raise Exception(
             "Failed to make a reliable request after multiple attempts.")
