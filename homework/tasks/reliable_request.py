@@ -28,7 +28,7 @@ async def do_reliable_request(url: str, observer: ResultsObserver) -> None:
         for _ in range(max_retries):
             try:
                 response = await client.get(url,
-                                            timeout=5.0)
+                                            timeout=10.1)
                 response.raise_for_status()
                 data = response.content
                 observer.observe(data)
