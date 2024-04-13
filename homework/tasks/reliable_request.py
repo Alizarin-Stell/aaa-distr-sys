@@ -1,11 +1,12 @@
 import abc
-
+import asyncio
 import httpx
 
 
 class ResultsObserver(abc.ABC):
     @abc.abstractmethod
-    def observe(self, data: bytes) -> None: ...
+    def observe(self, data: bytes) -> None:
+        pass
 
 
 async def do_reliable_request(url: str, observer: ResultsObserver) -> None:
@@ -19,12 +20,19 @@ async def do_reliable_request(url: str, observer: ResultsObserver) -> None:
     Все успешно полученные результаты должны регистрироваться с помощью обсёрвера.
     """
 
-    async with httpx.AsyncClient() as client:
-        # YOUR CODE GOES HERE
-        response = await client.get(url)
-        response.raise_for_status()
-        data = response.read()
+    max_retries = 5
+    retry_delay = 1
 
-        observer.observe(data)
-        return
-        #####################
+    async with httpx.AsyncClient() as client:
+        for _ in range(max_retries):
+            try:
+                response = await client.get(url,
+                                            timeout=5.0)
+                response.raise_for_status()
+                data = response.content
+                observer.observe(data)
+                return
+            except (httpx.RequestError, httpx.HTTPStatusError) as e:
+                await asyncio.sleep(retry_delay)
+        raise Exception(
+            "Failed to make a reliable request after multiple attempts.")
